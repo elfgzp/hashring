@@ -11,7 +11,7 @@ func NewHashRing() (*HashRing, error) {
 }
 
 // AddNode 增加节点
-func (h *HashRing) AddNode(nodeName string, nodeWeight int64) error {
+func (h *HashRing) AddNode(nodeName string) error {
 	return nil
 }
 
@@ -26,18 +26,18 @@ func (h *HashRing) GetNode(key string) string {
 }
 
 // AddNodes 批量增加节点
-func (h *HashRing) AddNodes(nodeWeightMap map[string]int64) error {
+func (h *HashRing) AddNodes(nodeNameArr []string) error {
 	var err error
 
-	for nodeName, nodeWeight := range nodeWeightMap {
-		err = h.AddNode(nodeName, nodeWeight)
+	for _, nodeName := range nodeNameArr {
+		err = h.AddNode(nodeName)
 		if err != nil {
 			break
 		}
 	}
 
 	if err != nil {
-		for nodeName := range nodeWeightMap {
+		for _, nodeName := range nodeNameArr {
 			err = h.RemoveNode(nodeName)
 			if err != nil {
 				break

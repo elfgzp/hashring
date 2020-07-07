@@ -1,113 +1,58 @@
 package hashring
 
 import (
-	"reflect"
+	"fmt"
+	"math"
+	"math/rand"
 	"testing"
+	"time"
+
+	"github.com/toolkits/pkg/logger"
 )
 
-func TestNewHashRing(t *testing.T) {
-	tests := []struct {
-		name    string
-		want    *HashRing
-		wantErr bool
-	}{
-		// TODO: Add test cases.
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			got, err := NewHashRing()
-			if (err != nil) != tt.wantErr {
-				t.Errorf("NewHashRing() error = %v, wantErr %v", err, tt.wantErr)
-				return
-			}
-			if !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("NewHashRing() = %v, want %v", got, tt.want)
-			}
-		})
-	}
+func init() {
+	rand.Seed(time.Now().UnixNano())
 }
 
-func TestHashRing_AddNode(t *testing.T) {
-	type args struct {
-		nodeName   string
-		nodeWeight int64
-	}
-	tests := []struct {
-		name    string
-		h       *HashRing
-		args    args
-		wantErr bool
-	}{
-		// TODO: Add test cases.
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			if err := tt.h.AddNode(tt.args.nodeName, tt.args.nodeWeight); (err != nil) != tt.wantErr {
-				t.Errorf("HashRing.AddNode() error = %v, wantErr %v", err, tt.wantErr)
-			}
-		})
-	}
-}
+var letterRunes = []rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ")
 
-func TestHashRing_RemoveNode(t *testing.T) {
-	type args struct {
-		nodeName string
+func RandStringRunes(n int) string {
+	b := make([]rune, n)
+	for i := range b {
+		b[i] = letterRunes[rand.Intn(len(letterRunes))]
 	}
-	tests := []struct {
-		name    string
-		h       *HashRing
-		args    args
-		wantErr bool
-	}{
-		// TODO: Add test cases.
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			if err := tt.h.RemoveNode(tt.args.nodeName); (err != nil) != tt.wantErr {
-				t.Errorf("HashRing.RemoveNode() error = %v, wantErr %v", err, tt.wantErr)
-			}
-		})
-	}
+	return string(b)
 }
+func TestHashRing_NodeLoadBalance(t *testing.T) {
+	hashRing, err := NewHashRing(150)
+	if err != nil {
+		t.Error(err)
+	}
+	nodeNum := 10
+	dataAmount := 10000
+	avg := float64(dataAmount) / float64(nodeNum)
 
-func TestHashRing_GetNode(t *testing.T) {
-	type args struct {
-		key string
-	}
-	tests := []struct {
-		name string
-		h    *HashRing
-		args args
-		want string
-	}{
-		// TODO: Add test cases.
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			if got := tt.h.GetNode(tt.args.key); got != tt.want {
-				t.Errorf("HashRing.GetNode() = %v, want %v", got, tt.want)
-			}
-		})
-	}
-}
+	nodeMap := make(map[string]int, 0)
 
-func TestHashRing_AddNodes(t *testing.T) {
-	type args struct {
-		nodeWeightMap map[string]int64
+	for i := 1; i <= nodeNum; i++ {
+		nodeMap[fmt.Sprintf("192.168.1.1%d", i)] = 1
 	}
-	tests := []struct {
-		name    string
-		h       *HashRing
-		args    args
-		wantErr bool
-	}{
-		// TODO: Add test cases.
+	hashRing.AddNodes(nodeMap)
+	counter := make(map[string]int, 0)
+	for i := 1; i <= 10000; i++ {
+		key := RandStringRunes(20)
+		nodeName, _ := hashRing.NodeLoadBalance(key)
+		counter[nodeName]++
 	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			if err := tt.h.AddNodes(tt.args.nodeWeightMap); (err != nil) != tt.wantErr {
-				t.Errorf("HashRing.AddNodes() error = %v, wantErr %v", err, tt.wantErr)
-			}
-		})
+	logger.Infof("counter %+v", counter)
+
+	val := 0.0
+	for nodeName := range nodeMap {
+		count := counter[nodeName]
+		pow := math.Pow(float64(count)-avg, 2)
+		sqrt := math.Sqrt(pow)
+		val += sqrt
 	}
+	val = val / float64(nodeNum)
+	logger.Infof("Standard deviation %f ", val)
 }

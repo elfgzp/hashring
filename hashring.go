@@ -1,10 +1,13 @@
 package hashring
 
 import (
+	"crypto/md5"
+	"encoding/binary"
 	"errors"
 	"fmt"
-	"hash/adler32"
 	"sort"
+
+	"github.com/toolkits/pkg/logger"
 )
 
 // Node 节点
@@ -50,29 +53,25 @@ type HashRing struct {
 	virtualNodeArr virtualNodeArray
 }
 
+func (h *HashRing) hash(key string) uint32 {
+	m := md5.New()
+	m.Write([]byte(key))
+	keyMD5 := m.Sum(nil)
+	hashValue := binary.BigEndian.Uint32(keyMD5)
+	return hashValue
+}
+
 func (h *HashRing) generate() {
-	var totalWeight int
 	h.virtualNodeArr = make(virtualNodeArray, 0)
 
 	for _, node := range h.RealNodeMap {
-		totalWeight += node.Weight
-	}
-
-	if totalWeight == 0 {
-		return
-	}
-
-	adl := adler32.New()
-	for _, node := range h.RealNodeMap {
-		virtualNodeNum := node.Weight * h.VirtualNodeNum / totalWeight
+		virtualNodeNum := node.Weight * h.VirtualNodeNum
 		for i := 1; i <= virtualNodeNum; i++ {
 			virtualNode := &VirtualNode{}
 			virtualNode.Name = node.Name
 			virtualNode.Weight = node.Weight
 			virtualNode.VirtualName = fmt.Sprintf("%s#%d", node.Name, i)
-			adl.Write([]byte(virtualNode.VirtualName))
-			virtualNode.HashValue = adl.Sum32()
-			adl.Reset()
+			virtualNode.HashValue = h.hash(virtualNode.VirtualName)
 			h.virtualNodeArr = append(h.virtualNodeArr, virtualNode)
 		}
 	}
@@ -117,12 +116,11 @@ func (h *HashRing) NodeLoadBalance(key string) (string, error) {
 		return "", errors.New("No available node. ")
 	}
 
-	adl := adler32.New()
-	adl.Write([]byte(key))
-	hashValue := adl.Sum32()
+	hashValue := h.hash(key)
 
 	i := sort.Search(h.virtualNodeArr.Len(), func(i int) bool {
-		return h.virtualNodeArr[i].HashValue >= hashValue
+		nodeHashValue := h.virtualNodeArr[i].HashValue
+		return nodeHashValue >= hashValue
 	})
 
 	if i == h.virtualNodeArr.Len() {
@@ -130,6 +128,8 @@ func (h *HashRing) NodeLoadBalance(key string) (string, error) {
 	}
 
 	virtualNode := h.virtualNodeArr[i]
+
+	logger.Infof("key %s hashValue %d nodeHashValue %d virtualNodeName %s nodeName %s ", key, hashValue, virtualNode.HashValue, virtualNode.VirtualName, virtualNode.Name)
 
 	return virtualNode.Name, nil
 }

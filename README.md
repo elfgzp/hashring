@@ -14,7 +14,7 @@ func main() {
     hashRing := hashring.NewHashRing(150)
     hashRing.AddNodes(map[string]int{
         "192.168.1.101": 1,
-        "192.168.1.101": 2
+        "192.168.1.101": 2,
         "192.168.1.101": 3
     })
     nodeName, _ := hashRing.NodeLoadBalance(key)

@@ -2,7 +2,7 @@
 
 一致性 Hash 环
 
-``` golang
+```go
 package main
 
 import (

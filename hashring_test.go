@@ -44,15 +44,15 @@ func TestHashRing_NodeLoadBalance(t *testing.T) {
 		nodeName, _ := hashRing.NodeLoadBalance(key)
 		counter[nodeName]++
 	}
-	logger.Infof("counter %+v", counter)
+	logger.Infof("counter %+v\n", counter)
 
 	val := 0.0
 	for nodeName := range nodeMap {
 		count := counter[nodeName]
 		pow := math.Pow(float64(count)-avg, 2)
-		sqrt := math.Sqrt(pow)
-		val += sqrt
+		val += pow
 	}
 	val = val / float64(nodeNum)
-	logger.Infof("Standard deviation %f ", val)
+	val = math.Sqrt(val)
+	logger.Infof("Standard deviation %f \n", val)
 }

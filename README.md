@@ -18,6 +18,6 @@ func main() {
         "192.168.1.101": 3
     })
     nodeName, _ := hashRing.NodeLoadBalance(key)
-    fmt.Printf("node load balance , node name %s", nodeName)
+    logger.Infof("node load balance , node name %s \n", nodeName)
 }
 ```

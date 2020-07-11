@@ -129,7 +129,7 @@ func (h *HashRing) NodeLoadBalance(key string) (string, error) {
 
 	virtualNode := h.virtualNodeArr[i]
 
-	logger.Infof("key %s hashValue %d nodeHashValue %d virtualNodeName %s nodeName %s ", key, hashValue, virtualNode.HashValue, virtualNode.VirtualName, virtualNode.Name)
+	logger.Infof("key %s hashValue %d nodeHashValue %d virtualNodeName %s nodeName %s \n", key, hashValue, virtualNode.HashValue, virtualNode.VirtualName, virtualNode.Name)
 
 	return virtualNode.Name, nil
 }
@@ -137,6 +137,10 @@ func (h *HashRing) NodeLoadBalance(key string) (string, error) {
 // AddNodes 批量增加节点
 func (h *HashRing) AddNodes(nodeWeightMap map[string]int) {
 	for nodeName, nodeWeight := range nodeWeightMap {
-		h.AddNode(nodeName, nodeWeight)
+		h.RealNodeMap[nodeName] = &Node{
+			Name:   nodeName,
+			Weight: nodeWeight,
+		}
 	}
+	h.generate()
 }
